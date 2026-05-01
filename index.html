@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Словарь Risk Game of Thrones</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #f0e6c8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      text-align: center;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #c9a95d;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      background: #2b2218;
+      border: 2px solid #4a3828;
+      border-radius: 30px;
+      color: #c9a95d;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.95rem;
+    }
+    .tab-btn.active {
+      background: #4a3828;
+      border-color: #c9a95d;
+      color: #f0e6c8;
+    }
+    .tab-content {
+      display: none;
+      width: 100%;
+      max-width: 420px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Стили для карточек героев (после выбора дома) */
+    .house-select {
+      width: 100%;
+      padding: 12px;
+      background: #2b2218;
+      color: #f0e6c8;
+      border: 2px solid #4a3828;
+      border-radius: 12px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c9a95d'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+    }
+    .hero-list {
+      background: #2b2218;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .hero-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #4a3828;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .hero-item:last-child { border-bottom: none; }
+    .hero-name {
+      font-weight: bold;
+      color: #d4b56c;
+      flex: 1 1 100%;
+    }
+    .hero-action {
+      color: #cbd5b0;
+      font-size: 0.9rem;
+      flex: 1 1 100%;
+    }
+
+    /* Поле поиска с автодополнением */
+    .autocomplete-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 1rem;
+      border: 2px solid #4a3828;
+      border-radius: 12px;
+      background: #2b2218;
+      color: #f0e6c8;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .search-input:focus {
+      border-color: #c9a95d;
+    }
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #2b2218;
+      border: 2px solid #4a3828;
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      list-style: none;
+    }
+    .suggestions li {
+      padding: 12px 18px;
+      color: #f0e6c8;
+      cursor: pointer;
+    }
+    .suggestions li:hover, .suggestions li.active {
+      background: #4a3828;
+    }
+    .selected-translation {
+      background: #33291c;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+    .selected-translation .eng {
+      font-weight: bold;
+      color: #d4b56c;
+      display: block;
+    }
+    .selected-translation .rus {
+      color: #cbd5b0;
+      display: block;
+      margin-top: 4px;
+    }
+
+    .install-hint {
+      margin-top: 30px;
+      font-size: 0.8rem;
+      color: #978d73;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚔️ Словарь карт<br>Risk Game of Thrones</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="heroes">🦁 Герои</button>
+    <button class="tab-btn" data-tab="maester">📜 Мейстер</button>
+    <button class="tab-btn" data-tab="objectives">🎯 Цели</button>
+  </div>
+
+  <!-- Вкладка ГЕРОИ -->
+  <div class="tab-content active" id="heroes">
+    <select class="house-select" id="houseSelect">
+      <option value="">-- Выберите Дом --</option>
+      <option value="Stark">Stark</option>
+      <option value="Baratheon">Baratheon</option>
+      <option value="Lannister">Lannister</option>
+      <option value="Tyrell">Tyrell</option>
+      <option value="Martell">Martell</option>
+      <option value="Targaryen">Targaryen</option>
+      <option value="Gys">Gys</option>
+    </select>
+    <div class="hero-list" id="heroList">
+      <!-- Здесь появятся карты героев -->
+    </div>
+  </div>
+
+  <!-- Вкладка МЕЙСТЕР -->
+  <div class="tab-content" id="maester">
+    <div class="autocomplete-wrapper">
+      <input type="text" class="search-input" id="maesterSearch" placeholder="Начните вводить название карты..." autocomplete="off">
+      <ul class="suggestions" id="maesterSuggestions"></ul>
+    </div>
+    <div class="selected-translation" id="maesterResult" style="display: none;"></div>
+  </div>
+
+  <!-- Вкладка ЦЕЛИ -->
+  <div class="tab-content" id="objectives">
+    <div class="autocomplete-wrapper">
+      <input type="text" class="search-input" id="objectivesSearch" placeholder="Начните вводить название карты..." autocomplete="off">
+      <ul class="suggestions" id="objectivesSuggestions"></ul>
+    </div>
+    <div class="selected-translation" id="objectivesResult" style="display: none;"></div>
+  </div>
+
+  <div class="install-hint">
+    Чтобы установить приложение, нажми «Поделиться» → «На экран Домой»
+  </div>
+
+  <script>
+    // ========== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ==========
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ========== 1. ГЕРОИ ==========
+    const heroData = {
+      Stark: [
+        { name: "Robb Stark", action: "300. Можешь сыграть когда объявляешь Вторжение. Добавь +1 ко всем броскам своих кубиков в течение всего Вторжения." },
+        { name: "Catelyn Stark", action: "200. Можешь разыграть когда враг производит Вторжение на твою Территорию которую защищает 1 армия. Добавь 1 армию на эту Территорию." },
+        { name: "Ned Stark", action: "200. Можешь сыграть, когда бросил свои кубики в Битве в обороне. Поменяй значение 1 любого своего выпавшего кубика на максимально возможное." },
+        { name: "Jon Snow", action: "100. Можешь сыграть в начале своей фазы Маневра. Ты можешь сыграть дополнительную фазу Маневра в этот ход." }
+      ],
+      Targaryen: [
+        { name: "Grey Worm", action: "200. Можно разыграть в начале любого твоего Вторжения. Ты можешь перебросить все единицы выпавшие на твоих кубиках в течение этого Вторжения." },
+        { name: "Jorah Mormont", action: "200. Можно разыграть если в этот ход ты захватил 2 или более Территорий с Замком и/или Портом. Возьми дополнительную карту Территории." },
+        { name: "Barristan Selmy", action: "100. Можешь сыграть, когда бросил свои кубики в Битве в обороне. Перебрось один любой свой кубик один раз в любой момент Битвы." },
+        { name: "Daenerys Targaryen", action: "300. Можешь сыграть, когда объявляешь Вторжение. Можешь поменять все 6-кубики на 8-кубики в течение всего Вторжения." }
+      ],
+      Lannister: [
+        { name: "Tyrion Lannister", action: "100. Можешь сыграть когда покупаешь карту Мейстер. Можешь посмотреть 2 верхние карты Мейстер, выбрать одну и сбросить вторую." },
+        { name: "Tywin Lannister", action: "200. Можешь сыграть после того, как бросил кубики в Битве защите. Добавь +1 к выпавшим значениям на кубиках в этой Битве." },
+        { name: "Jaime Lannister", action: "200. Можешь сыграть после того, как бросил свои кубики в Битве когда ты нападаешь. Поменяй значение любого одного своего выпавшего кубика на максимальное." },
+        { name: "Sersei Lannister", action: "300. Можешь сыграть если захватил 3 или более Территорий в этот ход. Возьми еще одну карту территории в конце хода." }
+      ],
+      Gys: [
+        { name: "Xaro Xhoan Daxos", action: "100. Можешь сыграть когда берешь карту Территории. Посмотри 2 верхние карты Территорий, возьми одну и сбрось вторую." },
+        { name: "Kraznys Mo Nakloz", action: "200. Можешь сыграть, когда объявляешь Вторжение. Добавь +1 к кубику с наибольшим выпавшим значением в течение всего Вторжения." },
+        { name: "Pyat Pree", action: "300. Можешь сыграть после того как бросил кубики в битве. Добавь +1 ко всем выпавшим значениям." },
+        { name: "Hizdahr Zo Loraq", action: "200. Можешь сыграть когда противник начал Вторжение против тебя. Замени один 6-кубик на 8-кубик на время всей обороны от Вторжения." }
+      ],
+      Baratheon: [
+        { name: "Davos Seaworth", action: "200. Можешь сыграть когда нападаешь на Территорию с Портом. Добавь +1 ко всем значениям твоих выпавших кубиков в течение всей фазы Вторжения." },
+        { name: "Stannis Baratheon", action: "300. Можешь сыграть когда противник объявляет Вторжение против тебя. Добавь +1 ко всем выпавшим значениям твоих кубиков в течении всего Вторжения." },
+        { name: "Salladhor Saan", action: "100. Можешь сыграть ДО того, как объявишь Вторжения. В первый раз, когда захватываешь вражескую Территорию в этот ход - укради 100 золота у этого противника." },
+        { name: "Melisandre", action: "200. Можешь сыграть ДО того, как объявишь Вторжения. Выбери противника - он должен сбросить случайную карту Мейстер." }
+      ],
+      Martell: [
+        { name: "Oberyn Martell", action: "200. Можешь сыграть когда объявляешь Вторжение. Можешь заменить один 6-гр на 8-гр на время этого Вторжения." },
+        { name: "Aero Hotah", action: "200. Можешь сыграть когда враг объявляет Вторжение на твою территорию с Замком или Портом. Добавь +1 к наибольшему значению, которое выпадает на твоих кубиках в течение защиты от этого Вторжения." },
+        { name: "Doran Martell", action: "300. Можешь сыграть в конце своего хода если НЕ захватил ни одной Территории. Возьми карту Территории в конце своего хода." },
+        { name: "Ellaria Sand", action: "100. Можешь сыграть ДО того, как объявишь Вторжения. Можешь сделать Маневр в любой момент своего хода (в том числе во время атаки)" }
+      ],
+      Tyrell: [
+        { name: "Loras Tyrell", action: "200. Можешь сыграть когда объявляешь Вторжение. Ты выигрываешь все ничьи при бросках кубика в этом Вторжении." },
+        { name: "Renly Baratheon", action: "200. Можешь сыграть когда размещаешь армии. Размести дополнительную армию на одну любую Территорию с Замком." },
+        { name: "Margaery Tyrell", action: "100. Можешь сыграть когда бросил кубик в Битве. Заставь противника перебросить один кубик на твой выбор один раз за Битву." },
+        { name: "Brienne", action: "300. Можешь сыграть когда противник объявляет Вторжение на твою Территорию. Замени все 6-гр кубики на 8-гр на время этого Вторжения." }
+      ]
+    };
+
+    const houseSelect = document.getElementById('houseSelect');
+    const heroList = document.getElementById('heroList');
+    houseSelect.addEventListener('change', () => {
+      const house = houseSelect.value;
+      heroList.innerHTML = '';
+      if (!house || !heroData[house] || heroData[house].length === 0) {
+        heroList.innerHTML = '<div class="hero-item"><span class="hero-action">Нет данных по этому дому</span></div>';
+        return;
+      }
+      heroData[house].forEach(hero => {
+        const div = document.createElement('div');
+        div.className = 'hero-item';
+        div.innerHTML = `<span class="hero-name">${hero.name}</span><span class="hero-action">${hero.action}</span>`;
+        heroList.appendChild(div);
+      });
+    });
+
+    // ========== 2. МЕЙСТЕР ==========
+    const maesterCards = [
+      { name: "valyrian steel", translation: "100 Сыграй после того как бросил кубик по любой причине. Поменяй значение любого кубика на максимальное." },
+      { name: "pirate ship fleet", translation: "100 Сыграй до того, как объявляешь Вторжение в этот ход. Ты можешь объявлять Вторжение со своих Территорий с Портом на любую территорию противника на побережье (Порт не обязателен)" },
+      { name: "reinforce bulwarks", translation: "100 Сыграй в любое время. Размести Укрепление на любую свою Территорию." },
+      { name: "castle walls", translation: "100 Сыграй когда противник объявляет Вторжение на твою территорию на которой есть Замок. Добавь +1 к самому большому значению черного кубика на протяжении всего этого Вторжения." },
+      { name: "raid the countryside", translation: "100 Сыграй когда объявляешь Вторжение. Если ты захватишь Территорию, ты также крадешь 300 золотых у владельца этой Территории." },
+      { name: "fortified forts", translation: "100 Сыграй когда противник объявляет Вторжение на твою территорию на которой есть Порт.  Добавь +1 к самому большому значению черного кубика на протяжении всего этого Вторжения." },
+      { name: "strategic withdrawal", translation: "100 Сыграй когда противник объявляет Вторжение на твою территорию. Убери все свои армии, кроме одной с защищающейся Территории и размести их на любой другой своей Территории." },
+      { name: "strength of steel", translation: "100 Сыграй когда объявляешь Вторжение. Добавь +1 к самому большому значению кубика на протяжении всего этого Вторжения." },
+      { name: "weapons of war", translation: "100 Сыграй в любое время. Размести Осадное Орудие на любую свою Территорию." },
+      { name: "a sworn sword", translation: "100 Сыграй в любое время. Размести Рыцаря на любую свою Территорию." },
+      { name: "preparing for war", translation: "200 Сыграй в любое время. Размести 3 армии, по одной на трех Территориях, которые ты контролируешь." },
+      { name: "blood magic", translation: "200 Сыграй до того, как объявляешь Вторжение в этот ход. Выбери Героя и брось 6-кубик. Если ты выбросишь 3 или больше, уничтожь этого Героя и убери его из игры." },
+      { name: "mass desertion", translation: "200 Сыграй до того, как объявляешь Вторжение в этот ход. Возьми и покажи две верхние карты из колоды Территорий. Уничтожь половину армий на каждой из этих Территорий, с округлением в меньшую сторону, если эти Территории контролируются противником." },
+      { name: "spider`s sabotage", translation: "200 Сыграй когда противник разыгрывает карту Мейстера. Отмени эффект этой карты. Противник все равно платит за карту и карта все равно сбрасывается." },
+      { name: "taken captive", translation: "200 Сыграй когда объявляешь Вторжение. Выбери героя из дома противника, который защищается. Если ты захватил Территорию, на которую объявил Вторжение, захвати и этого героя. Пока противник не заплатит тебе 500 золотых выкупа, этот герой не сможет использовать свою способность." },
+      { name: "establish the high ground", translation: "200 Сыграй когда враг объявляет Вторжение на твою Территорию. Добавь +1 ко всем броскам своих кубиков, до тех пор, пока противник не захватит твою защищающуюся Территорию." },
+      { name: "desperate ambush", translation: "200 Сыграй, когда противник выбрал армии для участия в атакующей битве на твоей Территории. Брось 6-кубик. 1-2=уничтожь 1 атакующую армию, 3-4=уничтожь 2 атакующие армии, 5-6=уничтожь 3 атакующие армии." },
+      { name: "best laid plans", translation: "200 Сыграй в начале своего хода. Все противники бросают 6-кубик. Кто выбросит меньше всех - теряет 1 Очко Победы." },
+      { name: "a temporary truce", translation: "200 Сыграй когда враг объявляет Вторжение на твою территорию. Твоя атакуемая Территория не может быть атакована, пока противник не захватит Территорию другого противника." },
+      { name: "hired thieves", translation: "200 Сыграй в начале своего хода. Можешь украсть до 200 золотых у любого противника." },
+      { name: "mourning the fallen", translation: "300 Сыграй в начале своего хода. Стоимость использования умений героев и карт Мейстера для всех противников УДВОЕНА до начала твоего следующего хода." },
+      { name: "sickness in the ranks", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Возьми, покажи и сбрось карту Территории. Посмотри, из какого региона эта Территория. Уничтожь по 1 армии противника на каждой Территории из этого Региона." },
+      { name: "a web of lies", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Возьми одну случайную карту Мейстера из руки любого противника." },
+      { name: "call in your banners", translation: "300 Сыграй когда получаешь армии в начале хода. Брось 6-кубик. Добавь столько армий, сколько выпало на кубике к твоему количеству подкреплений в этот ход." },
+      { name: "freefolk uprising", translation: "300 Сыграй в начале хода противника, до того, как он получил армии и золото. Противник получает только половину армий и золота, округленное в меньшую сторону." },
+      { name: "unplanned losses", translation: "300 Сыграй когда враг объявляет Вторжение на Территорию другого твоего врага. Уничтожь по 2 армии и у атакующего, и у защищающегося. По 1 армии на Территории у каждого должно остаться." },
+      { name: "confusion in the ranks", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Каждый противник сбрасывает по одной случайной карте Мейстера." },
+      { name: "winter is coming", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Каждый противник уничтожает по 2 армии. Затем ты уничтожаешь 1 свою армию." },
+      { name: "cut off supply lines", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Выбери Территорию противника, которая граничит с твоей. Брось 6-кубик. Убери с этой территории противника столько армий сколько выпало на кубике. 1 армия должна остаться." },
+      { name: "rally the smallfolk", translation: "300 Сыграй до того как объявляешь Вторжение в этот ход. Возьми карту Территории (не показывай ее противникам), посмотри ее, запомни где она находится и положи ее рубашкой вверх перед собой, затем поставь на нее 5 армий. Когда ты захватишь эту Территорию - поставь на нее эти 5 армий." },
+      { name: "a call to arms", translation: "300 Сыграй когда противник объявляет Вторжение на твою Территорию. Брось 6-кубик. Добавь на защищающуюся Территорию столько армий, сколько выпало на кубике." },
+      { name: "lead into a trap", translation: "300 Сыграй, когда противник выбрал армии для участия в атакующей битве на твоей Территории. Все атакующие армии врага уничтожаются." },
+      { name: "shifting alliance", translation: "400 Сыграй, когда противник выбрал армии для участия в атакующей битве на твоей Территории. Уничтожь 1-2 атакующие армии противника и добавь 2 армии в обороняемую Территорию." },
+      { name: "wed for peace", translation: "400 Сыграй когда Противник объявляет Вторжение на твою Территорию. Отмени Вторжение и этот противник вообще не может вторгаться на твои Территории в этот ход." },
+      { name: "valar morghulis", translation: "500 Сыграй до того как объявляешь Вторжение в этот ход. Уничтожь любого одного персонажа противника и убери его из игры." },
+      { name: "bribery", translation: "бесплатно Сыграй когда противник объявляет Вторжение на твою Территорию. Дай противнику 200 монет и он не сможет вторгнуться на эту Территорию в этот ход." }
+    ];
+    setupAutocomplete('maesterSearch', 'maesterSuggestions', 'maesterResult', maesterCards);
+
+    // ========== 3. ЦЕЛИ ==========
+    const objectivesCards = [
+      { name: "Control a port on each coastal area", translation: "1 Контролируй порт на каждом побережье (каждого цвета)" },
+      { name: "Destroy 4 opposing armies in a single turn", translation: "1 Уничтожь 4 вражеские армии за ход" },
+      { name: "Conquer 3 territories in a single turn", translation: "1 Захвати 3 территории за ход" },
+      { name: "Control 4 castles and 2 ports", translation: "1 Контролируй 4 крепости и 2 порта" },
+      { name: "Possess 500 or more gold", translation: "1 Владей 500 или более золотыми" },
+      { name: "Control 1 region", translation: "1 Контролируй 1 регион целиком" },
+      { name: "Control 3 ports", translation: "1 Контролируй 3 порта" },
+      { name: "Conquer 2 territories from on opponent in a single turn", translation: "1" },
+      { name: "Control 5 castles", translation: "1 Контролируй 5 крепостей" },
+      { name: "Control 2 territories in 3 regions", translation: "2 Контролируй по 2 территории в трех регионах" },
+      { name: "Possess 1000 or more gold", translation: "2 Владей 1000 или более золотыми" },
+      { name: "Conquer 3 territories with a port in a single turn", translation: "2 Захвати 3 территории с портом за ход" },
+      { name: "Conquer 3 territories with a castle in a single turn", translation: "2 Захвати 3 территории с замком за ход" },
+      { name: "Control 2 knights, siege engines or fortifications", translation: "2 Контролируй 2 рыцарей, осадных орудий или укреплений" },
+      { name: "Control 6 castles and 4 ports", translation: "2 Контролируй 6 крепостей и 4 порта" },
+      { name: "Control 5 ports", translation: "2 Контролируй 5 портов" },
+      { name: "Control 7 castles", translation: "2 Контролируй 7 крепостей" },
+      { name: "Destroy 8 opposing armies in a single turn", translation: "2 Уничтожь 8 вражеских армий за ход" },
+      { name: "Control 8 castles and 6 ports", translation: "3 Контролируй 8 крепостей и 6 портов" },
+      { name: "Control 1 knight, siege engine and fortification", translation: "3 Контролируй по 1 рыцарю, осадному орудию и укреплению" },
+      { name: "Destroy 12 opposing armies in a single turn", translation: "3 Уничтожь 12 вражеских армий за ход" },
+      { name: "Conquer 4 territories from on opponent in a single turn", translation: "3 Захвати 4 территории за ход" },
+      { name: "Possess 1500 or more gold", translation: "3 Владей 1500 или более золотыми" },
+      { name: "Control 9 castles", translation: "3 Контролируй 9 крепостей" },
+      { name: "Control 2 regions", translation: "3 Контролируй 2 региона целиком" },
+      { name: "Control 7 ports", translation: "3 Контролируй 7 портов" },
+      { name: "Conquer 6 territories in a single turn", translation: "3 Захвати 6 территорий за ход" },
+      { name: "Conquer 6 territories with a castle in a single turn", translation: "4 Захвати 6 территорий с замком за ход" },
+      { name: "Control 11 castles", translation: "4 Контролируй 11 крепостей" },
+      { name: "Possess 2000 or more gold", translation: "4 Владей 2000 или более золотыми" },
+      { name: "Conquer 5 territories with a port in a single turn", translation: "4 Захвати 5 территорий с портом за ход" },
+      { name: "Destroy 16 opposing armies in a single turn", translation: "4 Уничтожь 16 вражеских армий за ход" },
+      { name: "Control 9 ports", translation: "4 Контролируй 9 портов" },
+      { name: "Control 3 territories in 4 regions", translation: "4 Контролируй по 3 территории в 4 регионах" },
+      { name: "Control 10 castles and 8 ports", translation: "3 Контролируй 10 крепостей и 8 портов" },
+      { name: "Conquer 8 territories in a single turn", translation: "4 Захвати 8 территорий за ход" }
+    ];
+    setupAutocomplete('objectivesSearch', 'objectivesSuggestions', 'objectivesResult', objectivesCards);
+
+    // Универсальная функция для автодополнения
+    function setupAutocomplete(inputId, listId, resultId, dataArray) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      const resultDiv = document.getElementById(resultId);
+      let currentFocus = -1;
+
+      input.addEventListener('input', function() {
+        const val = this.value.trim().toLowerCase();
+        closeAllLists();
+        if (!val) {
+          resultDiv.style.display = 'none';
+          return false;
+        }
+        const matches = dataArray.filter(item => item.name.toLowerCase().includes(val));
+        if (matches.length === 0) {
+          resultDiv.style.display = 'none';
+          return false;
+        }
+        currentFocus = -1;
+        list.innerHTML = '';
+        matches.forEach((item, index) => {
+          const li = document.createElement('li');
+          li.textContent = item.name;
+          li.addEventListener('click', function() {
+            input.value = item.name;
+            showResult(resultDiv, item);
+            closeAllLists();
+          });
+          list.appendChild(li);
+        });
+        list.style.display = 'block';
+      });
+
+      input.addEventListener('keydown', function(e) {
+        const items = list.getElementsByTagName('li');
+        if (e.key === 'ArrowDown') {
+          currentFocus++;
+          addActive(items);
+        } else if (e.key === 'ArrowUp') {
+          currentFocus--;
+          addActive(items);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (currentFocus > -1 && items[currentFocus]) {
+            items[currentFocus].click();
+          }
+        }
+      });
+
+      function addActive(items) {
+        if (!items) return false;
+        removeActive(items);
+        if (currentFocus >= items.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = items.length - 1;
+        items[currentFocus].classList.add('active');
+      }
+      function removeActive(items) {
+        for (let item of items) item.classList.remove('active');
+      }
+
+      function closeAllLists(exceptList) {
+        const allLists = document.querySelectorAll('.suggestions');
+        allLists.forEach(l => { if (l !== exceptList) l.style.display = 'none'; });
+      }
+
+      document.addEventListener('click', function(e) {
+        if (e.target !== input) {
+          closeAllLists(null);
+        }
+      });
+
+      function showResult(div, item) {
+        div.innerHTML = `<span class="eng">${item.name}</span><span class="rus">${item.translation}</span>`;
+        div.style.display = 'block';
+      }
+    }
+
+    // Офлайн-сервис-воркер
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered'))
+          .catch(err => console.log('SW not registered', err));
+      });
+    }
+  </script>
+</body>
+</html>
